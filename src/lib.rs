@@ -19,12 +19,16 @@ impl Arch for N6502 {
 pub struct Instruction {
     pub opcode: Opcode,
     pub op_width: Width,
-    pub operands: Operand,
+    pub operand: Operand,
 }
 
 impl Default for Instruction {
     fn default() -> Self {
-        unimplemented!();
+        Instruction {
+            opcode: Opcode::Invalid(0xff),
+            op_width: Width::None,
+            operand: Operand::Implied,
+        }
     }
 }
 
@@ -37,16 +41,33 @@ impl fmt::Display for Instruction {
 impl LengthedInstruction for Instruction {
     type Unit = AddressDiff<<N6502 as Arch>::Address>;
     fn min_size() -> Self::Unit {
-        unimplemented!();
+        AddressDiff::from_const(1)
     }
+
     fn len(&self) -> Self::Unit {
-        unimplemented!();
+        match self.operand {
+            Operand::Accumulator | Operand::Implied => AddressDiff::from_const(1),
+
+            Operand::Immediate(_)
+            | Operand::IndirectYIndexed(_)
+            | Operand::XIndexedIndirect(_)
+            | Operand::Relative(_)
+            | Operand::ZeroPage(_)
+            | Operand::ZeroPageX(_)
+            | Operand::ZeroPageY(_) => AddressDiff::from_const(2),
+
+            Operand::Absolute(_)
+            | Operand::AbsoluteX(_)
+            | Operand::AbsoluteY(_)
+            | Operand::Indirect(_) => AddressDiff::from_const(3),
+        }
     }
 }
 
 impl yaxpeax_arch::Instruction for Instruction {
+    // FIXME: Probably not correct.
     fn well_defined(&self) -> bool {
-        unimplemented!();
+        true
     }
 }
 
@@ -54,6 +75,7 @@ impl yaxpeax_arch::Instruction for Instruction {
 pub enum Width {
     W,
     B,
+    None,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -149,13 +171,13 @@ impl fmt::Display for DecodeError {
 
 impl yaxpeax_arch::DecodeError for DecodeError {
     fn data_exhausted(&self) -> bool {
-        unimplemented!();
+        self == &DecodeError::ExhaustedInput
     }
     fn bad_opcode(&self) -> bool {
-        unimplemented!();
+        self == &DecodeError::InvalidOpcode
     }
     fn bad_operand(&self) -> bool {
-        unimplemented!();
+        self == &DecodeError::InvalidOperand
     }
 }
 
@@ -164,7 +186,7 @@ pub struct InstDecoder;
 
 impl Default for InstDecoder {
     fn default() -> Self {
-        unimplemented!();
+        InstDecoder {}
     }
 }
 
