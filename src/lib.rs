@@ -198,7 +198,61 @@ impl Decoder<Instruction> for InstDecoder {
         inst: &mut Instruction,
         bytes: T,
     ) -> Result<(), Self::Error> {
-        unimplemented!();
+        let mut bytes_iter = bytes.into_iter();
+
+        let opcode = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
+        let nib_hi = (opcode & 0xf0) >> 4;
+        let nib_lo = (opcode & 0x0f);
+
+        match nib_lo {
+            0x00 => {
+                if opcode == 0x80 {
+                    return Err(DecodeError::InvalidOpcode);
+                }
+            }
+            0x01 | 0x05 | 0x06 | 0x08 | 0x0d => {}
+            0x02 => {
+                if opcode != 0xA2 {
+                    return Err(DecodeError::InvalidOpcode);
+                }
+            }
+            0x03 | 0x07 | 0x0b | 0x0f => {
+                return Err(DecodeError::InvalidOpcode);
+            }
+            0x04 => match nib_hi {
+                0x02 | 0x08 | 0x09 | 0x0a | 0x0b | 0x0c | 0x0e => {}
+                _ => {
+                    return Err(DecodeError::InvalidOpcode);
+                }
+            },
+            0x09 => {
+                if opcode == 0x89 {
+                    return Err(DecodeError::InvalidOpcode);
+                }
+            }
+            0x0a => match nib_hi {
+                0x01 | 0x03 | 0x05 | 0x07 | 0x0d | 0x0f => {
+                    return Err(DecodeError::InvalidOpcode);
+                }
+                _ => {}
+            },
+            0x0c => match nib_hi {
+                0x00 | 0x01 | 0x03 | 0x05 | 0x07 | 0x09 | 0x0d | 0x0f => {
+                    return Err(DecodeError::InvalidOpcode);
+                }
+                _ => {}
+            },
+            0x0e => {
+                if opcode == 0x9e {
+                    return Err(DecodeError::InvalidOpcode);
+                }
+            }
+            _ => {
+                unreachable!()
+            }
+        }
+
+        Ok(())
     }
 }
 
