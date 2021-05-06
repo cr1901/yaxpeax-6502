@@ -194,42 +194,7 @@ pub struct InstDecoder;
     the decoder individually, such as in a cycle-accurate emulator.
 */
 impl InstDecoder {
-    pub fn is_legal(&self, opcode: u8) -> bool {
-        let nib_hi = (opcode & 0xf0) >> 4;
-        let nib_lo = opcode & 0x0f;
-
-        match nib_lo {
-            0x00 => opcode != 0x80,
-            0x01 | 0x05 | 0x06 | 0x08 | 0x0d => true,
-            0x02 => opcode == 0xA2,
-            0x03 | 0x07 | 0x0b | 0x0f => false,
-            0x04 => match nib_hi {
-                0x02 | 0x08 | 0x09 | 0x0a | 0x0b | 0x0c | 0x0e => true,
-                _ => false,
-            },
-            0x09 => opcode != 0x89,
-            0x0a => match nib_hi {
-                0x01 | 0x03 | 0x05 | 0x07 | 0x0d | 0x0f => false,
-                _ => true,
-            },
-            0x0c => match nib_hi {
-                0x00 | 0x01 | 0x03 | 0x05 | 0x07 | 0x09 | 0x0d | 0x0f => false,
-                _ => true,
-            },
-            0x0e => opcode != 0x9e,
-            _ => {
-                unreachable!()
-            }
-        }
-    }
-
-    /** Find the opcode type, given that it's a legal opcode. Will not return valid data if
-        an illegal opcode was supplied.
-
-        The `Operand` variant returned contains the default value for the variant's type.
-        It is expected that the user will fill in the data.
-    */
-    pub fn legal_op_type(&self, opcode: u8) -> (Opcode, Operand) {
+    pub fn op_type(&self, opcode: u8) -> Result<(Opcode, Operand), DecodeError> {
         unimplemented!()
     }
 }
@@ -251,53 +216,50 @@ impl Decoder<Instruction> for InstDecoder {
         let mut bytes_iter = bytes.into_iter();
         let opcode = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
 
-        if self.is_legal(opcode) {
-            let (op_type, mut operand) = self.legal_op_type(opcode);
-
-            let mut op_byte: u8 = 0;
-            let mut op_word: u16 = 0;
-
-            match operand.width() {
-                0 => {}
-                1 => {
-                    op_byte = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
-                }
-                2 => {
-                    let byte_lo = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
-                    let byte_hi = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
-
-                    op_word = u16::from_le_bytes([byte_lo, byte_hi]);
-                }
-                _ => {
-                    unreachable!()
-                }
-            }
-
-            take_mut::take(&mut operand, |op| match op {
-                Operand::Accumulator => Operand::Accumulator,
-                Operand::Implied => Operand::Implied,
-
-                Operand::Immediate(_) => Operand::Immediate(op_byte),
-                Operand::IndirectYIndexed(_) => Operand::IndirectYIndexed(op_byte),
-                Operand::XIndexedIndirect(_) => Operand::XIndexedIndirect(op_byte),
-                Operand::Relative(_) => Operand::Relative(op_byte),
-                Operand::ZeroPage(_) => Operand::ZeroPage(op_byte),
-                Operand::ZeroPageX(_) => Operand::ZeroPageX(op_byte),
-                Operand::ZeroPageY(_) => Operand::ZeroPageY(op_byte),
-
-                Operand::Absolute(_) => Operand::Absolute(op_word),
-                Operand::AbsoluteX(_) => Operand::AbsoluteX(op_word),
-                Operand::AbsoluteY(_) => Operand::AbsoluteY(op_word),
-                Operand::Indirect(_) => Operand::Indirect(op_word),
-            });
-
-            inst.opcode = op_type;
-            inst.operand = operand;
-        } else {
-            // TODO: We should support the illegal opcodes that are used in real-world code.
+        let (op_type, mut operand) = self.op_type(opcode).map_err(|e| {
             inst.opcode = Opcode::Invalid(opcode);
-            return Err(DecodeError::InvalidOpcode);
+            e
+        })?;
+
+        let mut op_byte: u8 = 0;
+        let mut op_word: u16 = 0;
+
+        match operand.width() {
+            0 => {}
+            1 => {
+                op_byte = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
+            }
+            2 => {
+                let byte_lo = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
+                let byte_hi = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
+
+                op_word = u16::from_le_bytes([byte_lo, byte_hi]);
+            }
+            _ => {
+                unreachable!()
+            }
         }
+
+        take_mut::take(&mut operand, |op| match op {
+            Operand::Accumulator => Operand::Accumulator,
+            Operand::Implied => Operand::Implied,
+
+            Operand::Immediate(_) => Operand::Immediate(op_byte),
+            Operand::IndirectYIndexed(_) => Operand::IndirectYIndexed(op_byte),
+            Operand::XIndexedIndirect(_) => Operand::XIndexedIndirect(op_byte),
+            Operand::Relative(_) => Operand::Relative(op_byte),
+            Operand::ZeroPage(_) => Operand::ZeroPage(op_byte),
+            Operand::ZeroPageX(_) => Operand::ZeroPageX(op_byte),
+            Operand::ZeroPageY(_) => Operand::ZeroPageY(op_byte),
+
+            Operand::Absolute(_) => Operand::Absolute(op_word),
+            Operand::AbsoluteX(_) => Operand::AbsoluteX(op_word),
+            Operand::AbsoluteY(_) => Operand::AbsoluteY(op_word),
+            Operand::Indirect(_) => Operand::Indirect(op_word),
+        });
+
+        inst.opcode = op_type;
+        inst.operand = operand;
 
         Ok(())
     }
