@@ -287,7 +287,6 @@ impl InstDecoder {
             0x8d => Ok((Opcode::STA, Operand::Absolute(Default::default()))),
             0x8e => Ok((Opcode::STX, Operand::Absolute(Default::default()))),
 
-
             0x90 => Ok((Opcode::BCC, Operand::Relative(Default::default()))),
             0x91 => Ok((Opcode::STA, Operand::IndirectYIndexed(Default::default()))),
             0x94 => Ok((Opcode::STY, Operand::ZeroPageX(Default::default()))),
@@ -337,7 +336,6 @@ impl InstDecoder {
 
             0xd0 => Ok((Opcode::BNE, Operand::Relative(Default::default()))),
             0xd1 => Ok((Opcode::CMP, Operand::IndirectYIndexed(Default::default()))),
-            0xd4 => Ok((Opcode::CPY, Operand::ZeroPage(Default::default()))),
             0xd5 => Ok((Opcode::CMP, Operand::ZeroPageX(Default::default()))),
             0xd6 => Ok((Opcode::DEC, Operand::ZeroPageX(Default::default()))),
             0xd8 => Ok((Opcode::CLD, Operand::Implied)),
@@ -349,7 +347,7 @@ impl InstDecoder {
             0xe1 => Ok((Opcode::SBC, Operand::XIndexedIndirect(Default::default()))),
             0xe4 => Ok((Opcode::CPX, Operand::ZeroPage(Default::default()))),
             0xe5 => Ok((Opcode::SBC, Operand::ZeroPage(Default::default()))),
-            0xe6 => Ok((Opcode::SBC, Operand::ZeroPage(Default::default()))),
+            0xe6 => Ok((Opcode::INC, Operand::ZeroPage(Default::default()))),
             0xe8 => Ok((Opcode::INX, Operand::Implied)),
             0xe9 => Ok((Opcode::SBC, Operand::Immediate(Default::default()))),
             0xea => Ok((Opcode::NOP, Operand::Implied)),
@@ -360,7 +358,7 @@ impl InstDecoder {
             0xf0 => Ok((Opcode::BEQ, Operand::Relative(Default::default()))),
             0xf1 => Ok((Opcode::SBC, Operand::IndirectYIndexed(Default::default()))),
             0xf5 => Ok((Opcode::SBC, Operand::ZeroPageX(Default::default()))),
-            0xf6 => Ok((Opcode::SBC, Operand::ZeroPageX(Default::default()))),
+            0xf6 => Ok((Opcode::INC, Operand::ZeroPageX(Default::default()))),
             0xf8 => Ok((Opcode::SED, Operand::Implied)),
             0xf9 => Ok((Opcode::SBC, Operand::AbsoluteY(Default::default()))),
             0xfd => Ok((Opcode::SBC, Operand::AbsoluteX(Default::default()))),
