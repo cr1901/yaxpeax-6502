@@ -2,6 +2,7 @@
 */
 use std::fmt;
 
+use take_mut;
 use yaxpeax_arch::{AddressDiff, Arch, Decoder, LengthedInstruction};
 
 #[derive(Debug)]
@@ -18,7 +19,6 @@ impl Arch for N6502 {
 #[derive(Debug, Copy, Clone)]
 pub struct Instruction {
     pub opcode: Opcode,
-    pub op_width: Width,
     pub operand: Operand,
 }
 
@@ -26,7 +26,6 @@ impl Default for Instruction {
     fn default() -> Self {
         Instruction {
             opcode: Opcode::Invalid(0xff),
-            op_width: Width::None,
             operand: Operand::Implied,
         }
     }
@@ -45,22 +44,8 @@ impl LengthedInstruction for Instruction {
     }
 
     fn len(&self) -> Self::Unit {
-        match self.operand {
-            Operand::Accumulator | Operand::Implied => AddressDiff::from_const(1),
-
-            Operand::Immediate(_)
-            | Operand::IndirectYIndexed(_)
-            | Operand::XIndexedIndirect(_)
-            | Operand::Relative(_)
-            | Operand::ZeroPage(_)
-            | Operand::ZeroPageX(_)
-            | Operand::ZeroPageY(_) => AddressDiff::from_const(2),
-
-            Operand::Absolute(_)
-            | Operand::AbsoluteX(_)
-            | Operand::AbsoluteY(_)
-            | Operand::Indirect(_) => AddressDiff::from_const(3),
-        }
+        // Each opcode is 1 byte, remaining insn size inherent in operand.
+        AddressDiff::from_const(self.operand.width() + 1)
     }
 }
 
@@ -156,6 +141,27 @@ pub enum Operand {
     ZeroPageY(u8),
 }
 
+impl Operand {
+    fn width(&self) -> <N6502 as Arch>::Address {
+        match self {
+            Operand::Accumulator | Operand::Implied => 0,
+
+            Operand::Immediate(_)
+            | Operand::IndirectYIndexed(_)
+            | Operand::XIndexedIndirect(_)
+            | Operand::Relative(_)
+            | Operand::ZeroPage(_)
+            | Operand::ZeroPageX(_)
+            | Operand::ZeroPageY(_) => 1,
+
+            Operand::Absolute(_)
+            | Operand::AbsoluteX(_)
+            | Operand::AbsoluteY(_)
+            | Operand::Indirect(_) => 2,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum DecodeError {
     ExhaustedInput,
@@ -184,6 +190,9 @@ impl yaxpeax_arch::DecodeError for DecodeError {
 #[derive(Debug)]
 pub struct InstDecoder;
 
+/** An inherent implementation of `InstDecoder` is made public in case I want to use each part of
+    the decoder individually, such as in a cycle-accurate emulator.
+*/
 impl InstDecoder {
     pub fn is_legal(&self, opcode: u8) -> bool {
         let nib_hi = (opcode & 0xf0) >> 4;
@@ -213,6 +222,16 @@ impl InstDecoder {
             }
         }
     }
+
+    /** Find the opcode type, given that it's a legal opcode. Will not return valid data if
+        an illegal opcode was supplied.
+
+        The `Operand` variant returned contains the default value for the variant's type.
+        It is expected that the user will fill in the data.
+    */
+    pub fn legal_op_type(&self, opcode: u8) -> (Opcode, Operand) {
+        unimplemented!()
+    }
 }
 
 impl Default for InstDecoder {
@@ -233,8 +252,50 @@ impl Decoder<Instruction> for InstDecoder {
         let opcode = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
 
         if self.is_legal(opcode) {
+            let (op_type, mut operand) = self.legal_op_type(opcode);
+
+            let mut op_byte: u8 = 0;
+            let mut op_word: u16 = 0;
+
+            match operand.width() {
+                0 => {}
+                1 => {
+                    op_byte = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
+                }
+                2 => {
+                    let byte_lo = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
+                    let byte_hi = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
+
+                    op_word = u16::from_le_bytes([byte_lo, byte_hi]);
+                }
+                _ => {
+                    unreachable!()
+                }
+            }
+
+            take_mut::take(&mut operand, |op| match op {
+                Operand::Accumulator => Operand::Accumulator,
+                Operand::Implied => Operand::Implied,
+
+                Operand::Immediate(_) => Operand::Immediate(op_byte),
+                Operand::IndirectYIndexed(_) => Operand::IndirectYIndexed(op_byte),
+                Operand::XIndexedIndirect(_) => Operand::XIndexedIndirect(op_byte),
+                Operand::Relative(_) => Operand::Relative(op_byte),
+                Operand::ZeroPage(_) => Operand::ZeroPage(op_byte),
+                Operand::ZeroPageX(_) => Operand::ZeroPageX(op_byte),
+                Operand::ZeroPageY(_) => Operand::ZeroPageY(op_byte),
+
+                Operand::Absolute(_) => Operand::Absolute(op_word),
+                Operand::AbsoluteX(_) => Operand::AbsoluteX(op_word),
+                Operand::AbsoluteY(_) => Operand::AbsoluteY(op_word),
+                Operand::Indirect(_) => Operand::Indirect(op_word),
+            });
+
+            inst.opcode = op_type;
+            inst.operand = operand;
         } else {
             // TODO: We should support the illegal opcodes that are used in real-world code.
+            inst.opcode = Opcode::Invalid(opcode);
             return Err(DecodeError::InvalidOpcode);
         }
 
