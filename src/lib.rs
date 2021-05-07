@@ -1,9 +1,9 @@
 /** References: https://www.masswerk.at/6502/6502_instruction_set.html
 */
-use std::fmt;
-
 use take_mut;
 use yaxpeax_arch::{AddressDiff, Arch, Decoder, LengthedInstruction};
+
+mod display;
 
 #[derive(Debug)]
 pub struct N6502;
@@ -28,12 +28,6 @@ impl Default for Instruction {
             opcode: Opcode::Invalid(0xff),
             operand: Operand::Implied,
         }
-    }
-}
-
-impl fmt::Display for Instruction {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), std::fmt::Error> {
-        unimplemented!();
     }
 }
 
@@ -167,12 +161,6 @@ pub enum DecodeError {
     ExhaustedInput,
     InvalidOpcode,
     InvalidOperand,
-}
-
-impl fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        unimplemented!();
-    }
 }
 
 impl yaxpeax_arch::DecodeError for DecodeError {
