@@ -4,11 +4,8 @@ use super::{DecodeError, Instruction, Opcode, Operand};
 
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            DecodeError::ExhaustedInput => write!(f, "exhausted input"),
-            DecodeError::InvalidOpcode => write!(f, "invalid opcode"),
-            DecodeError::InvalidOperand => write!(f, "invalid operand"),
-        }
+        use yaxpeax_arch::DecodeError;
+        f.write_str(self.description())
     }
 }
 
