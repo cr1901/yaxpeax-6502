@@ -1,7 +1,7 @@
 /** References: https://www.masswerk.at/6502/6502_instruction_set.html
 */
 use take_mut;
-use yaxpeax_arch::{AddressDiff, Arch, Decoder, LengthedInstruction};
+use yaxpeax_arch::{AddressDiff, Arch, Decoder, LengthedInstruction, Reader};
 
 mod display;
 
@@ -10,6 +10,7 @@ pub struct N6502;
 
 impl Arch for N6502 {
     type Address = u16;
+    type Word = u8;
     type Instruction = Instruction;
     type DecodeError = DecodeError;
     type Decoder = InstDecoder;
@@ -172,6 +173,19 @@ impl yaxpeax_arch::DecodeError for DecodeError {
     }
     fn bad_operand(&self) -> bool {
         self == &DecodeError::InvalidOperand
+    }
+    fn description(&self) -> &'static str {
+        match self {
+            DecodeError::ExhaustedInput => "exhausted input",
+            DecodeError::InvalidOpcode => "invalid opcode",
+            DecodeError::InvalidOperand => "invalid operand",
+        }
+    }
+}
+
+impl From<yaxpeax_arch::ReadError> for DecodeError {
+    fn from(_e: yaxpeax_arch::ReadError) -> DecodeError {
+        DecodeError::ExhaustedInput
     }
 }
 
@@ -363,16 +377,13 @@ impl Default for InstDecoder {
     }
 }
 
-impl Decoder<Instruction> for InstDecoder {
-    type Error = DecodeError;
-
-    fn decode_into<T: IntoIterator<Item = u8>>(
+impl Decoder<N6502> for InstDecoder {
+    fn decode_into<T: Reader<<N6502 as Arch>::Address, <N6502 as Arch>::Word>>(
         &self,
         inst: &mut Instruction,
-        bytes: T,
-    ) -> Result<(), Self::Error> {
-        let mut bytes_iter = bytes.into_iter();
-        let opcode = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
+        words: &mut T,
+    ) -> Result<(), <N6502 as Arch>::DecodeError> {
+        let opcode = words.next()?;
 
         let (op_type, mut operand) = self.op_type(opcode).map_err(|e| {
             inst.opcode = Opcode::Invalid(opcode);
@@ -385,11 +396,11 @@ impl Decoder<Instruction> for InstDecoder {
         match operand.width() {
             0 => {}
             1 => {
-                op_byte = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
+                op_byte = words.next()?;
             }
             2 => {
-                let byte_lo = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
-                let byte_hi = bytes_iter.next().ok_or(DecodeError::ExhaustedInput)?;
+                let byte_lo = words.next()?;
+                let byte_hi = words.next()?;
 
                 op_word = u16::from_le_bytes([byte_lo, byte_hi]);
             }
