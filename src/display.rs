@@ -1,15 +1,10 @@
-use std::fmt::{self, Write};
+use core::fmt;
 
 use super::{Instruction, Opcode, Operand};
 
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        // TODO: Use fixed-len buffer instead?
-        let mut s = String::new();
-
-        write!(s, "{}", self.opcode)?;
-        write!(s, " {}", self.operand)?;
-        write!(f, "{}", s)
+        write!(f, "{} {}", self.opcode, self.operand)
     }
 }
 

@@ -1,5 +1,11 @@
+#![no_std]
+
 /** References: https://www.masswerk.at/6502/6502_instruction_set.html
 */
+
+#[cfg(feature = "std")]
+extern crate std;
+
 use take_mut;
 use yaxpeax_arch::{AddressDiff, Arch, Decoder, LengthedInstruction, Reader};
 
