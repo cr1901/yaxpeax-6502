@@ -1,13 +1,6 @@
 use std::fmt::{self, Write};
 
-use super::{DecodeError, Instruction, Opcode, Operand};
-
-impl fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use yaxpeax_arch::DecodeError;
-        f.write_str(self.description())
-    }
-}
+use super::{Instruction, Opcode, Operand};
 
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {

@@ -157,37 +157,7 @@ impl Operand {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum DecodeError {
-    ExhaustedInput,
-    InvalidOpcode,
-    InvalidOperand,
-}
-
-impl yaxpeax_arch::DecodeError for DecodeError {
-    fn data_exhausted(&self) -> bool {
-        self == &DecodeError::ExhaustedInput
-    }
-    fn bad_opcode(&self) -> bool {
-        self == &DecodeError::InvalidOpcode
-    }
-    fn bad_operand(&self) -> bool {
-        self == &DecodeError::InvalidOperand
-    }
-    fn description(&self) -> &'static str {
-        match self {
-            DecodeError::ExhaustedInput => "exhausted input",
-            DecodeError::InvalidOpcode => "invalid opcode",
-            DecodeError::InvalidOperand => "invalid operand",
-        }
-    }
-}
-
-impl From<yaxpeax_arch::ReadError> for DecodeError {
-    fn from(_e: yaxpeax_arch::ReadError) -> DecodeError {
-        DecodeError::ExhaustedInput
-    }
-}
+pub type DecodeError = yaxpeax_arch::StandardDecodeError;
 
 #[derive(Debug)]
 pub struct InstDecoder;
