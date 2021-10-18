@@ -11,4 +11,3 @@ std = ["yaxpeax-arch/std"]
 
 [dependencies]
 yaxpeax-arch = { version = "0.2.4", default-features = false, features = [] }
-take_mut = "0.2.2"

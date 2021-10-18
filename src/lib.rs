@@ -6,7 +6,6 @@
 #[cfg(feature = "std")]
 extern crate std;
 
-use take_mut;
 use yaxpeax_arch::{AddressDiff, Arch, Decoder, LengthedInstruction, Reader};
 
 mod display;
@@ -361,7 +360,7 @@ impl Decoder<N6502> for InstDecoder {
     ) -> Result<(), <N6502 as Arch>::DecodeError> {
         let opcode = words.next()?;
 
-        let (op_type, mut operand) = self.op_type(opcode).map_err(|e| {
+        let (op_type, operand) = self.op_type(opcode).map_err(|e| {
             inst.opcode = Opcode::Invalid(opcode);
             e
         })?;
@@ -385,7 +384,7 @@ impl Decoder<N6502> for InstDecoder {
             }
         }
 
-        take_mut::take(&mut operand, |op| match op {
+        let operand = match operand {
             Operand::Accumulator => Operand::Accumulator,
             Operand::Implied => Operand::Implied,
 
@@ -401,7 +400,7 @@ impl Decoder<N6502> for InstDecoder {
             Operand::AbsoluteX(_) => Operand::AbsoluteX(op_word),
             Operand::AbsoluteY(_) => Operand::AbsoluteY(op_word),
             Operand::Indirect(_) => Operand::Indirect(op_word),
-        });
+        };
 
         inst.opcode = op_type;
         inst.operand = operand;
