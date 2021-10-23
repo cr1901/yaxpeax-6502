@@ -1,5 +1,7 @@
 # `yaxpeax-6502`
 
+[![crate](https://img.shields.io/crates/v/yaxpeax-6502.svg?logo=rust)](https://crates.io/crates/yaxpeax-6502)
+
 `yaxpeax-6502` is an instruction decoder for the NMOS [6502 Microprocessor](https://en.wikipedia.org/wiki/6502).
 
 This crate implements the traits provided by [`yaxpeax-arch`](https://github.com/iximeow/yaxpeax-arch).

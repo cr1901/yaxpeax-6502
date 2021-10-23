@@ -2,6 +2,8 @@
 name = "yaxpeax-6502"
 version = "0.0.2"
 edition = "2018"
+license = "0BSD"
+description = "6502 decoder implementing yaxpeax-arch traits"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
