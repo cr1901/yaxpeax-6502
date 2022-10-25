@@ -459,7 +459,7 @@ impl Iterator for Bytes {
 }
 
 impl Instruction {
-    pub fn decode(&self) -> Result<Bytes, EncodeError> {
+    pub fn encode(&self) -> Result<Bytes, EncodeError> {
         match (self.opcode, self.operand) {
             (Opcode::BRK, Operand::Implied) => Ok(Bytes::one(0x00)),
             (Opcode::ORA, Operand::XIndexedIndirect(val)) => Ok(Bytes::two(0x01, val)),
