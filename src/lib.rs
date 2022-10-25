@@ -723,7 +723,7 @@ impl Instruction {
             (Opcode::INC, Operand::AbsoluteX(addr)) => {
                 Ok(Bytes::three(0xfe, addr.to_le_bytes()[0], addr.to_le_bytes()[1]))
             }
-            (_, _) => panic!(),
+            (_, _) => Err(EncodeError::EncodeError),
         }
     }
 }
